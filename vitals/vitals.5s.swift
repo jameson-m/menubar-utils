@@ -343,7 +343,8 @@ let sysInfo = getSystemInfo()
 // Menu bar line
 let ramUsed = formatGB(mem.used)
 let swapUsed = swap.map { formatGB($0.used) } ?? "0G"
-print("\(ramUsed)/\(swapUsed)")
+let menuBarColor = pressureColor(pressure)
+print("\(ramUsed)/\(swapUsed) | sfimage=memorychip color=\(menuBarColor)")
 
 // Dropdown
 print("---")
