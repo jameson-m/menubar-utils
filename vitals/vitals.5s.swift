@@ -26,6 +26,10 @@ struct MemoryStats {
     var available: UInt64 {
         free + inactive + purgeable
     }
+
+    var usedPercent: Double {
+        Double(used) / Double(total) * 100
+    }
 }
 
 struct SwapStats {
@@ -50,14 +54,12 @@ func getSystemInfo() -> (model: String, chip: String, cores: Int, memory: String
     var model = "Mac"
     var chip = "Apple Silicon"
 
-    // Get model
     var size = 0
     sysctlbyname("hw.model", nil, &size, nil, 0)
     var modelBuffer = [CChar](repeating: 0, count: size)
     sysctlbyname("hw.model", &modelBuffer, &size, nil, 0)
     model = String(cString: modelBuffer)
 
-    // Get chip brand
     size = 0
     sysctlbyname("machdep.cpu.brand_string", nil, &size, nil, 0)
     if size > 0 {
@@ -66,12 +68,10 @@ func getSystemInfo() -> (model: String, chip: String, cores: Int, memory: String
         chip = String(cString: brandBuffer)
     }
 
-    // Get CPU cores
     var cores: Int32 = 0
     size = MemoryLayout<Int32>.size
     sysctlbyname("hw.ncpu", &cores, &size, nil, 0)
 
-    // Get memory
     var memSize: UInt64 = 0
     size = MemoryLayout<UInt64>.size
     sysctlbyname("hw.memsize", &memSize, &size, nil, 0)
@@ -147,9 +147,6 @@ func getMemoryPressure() -> String {
 
 // MARK: - CPU Stats
 
-var previousCPUInfo: processor_info_array_t?
-var previousCPUInfoCount: mach_msg_type_number_t = 0
-
 func getCPUUsage() -> CPUStats? {
     var numCPUs: natural_t = 0
     var cpuInfo: processor_info_array_t?
@@ -215,7 +212,6 @@ func getGPUUsage() -> Double? {
            let dict = properties?.takeRetainedValue() as? [String: Any],
            let perfStats = dict["PerformanceStatistics"] as? [String: Any] {
 
-            // Try different keys for GPU utilization
             if let gpuUtil = perfStats["GPU Activity(%)"] as? Double {
                 IOObjectRelease(service)
                 return gpuUtil
@@ -242,7 +238,6 @@ func getGPUUsage() -> Double? {
 // MARK: - Thermal
 
 func getThermalState() -> String {
-    // Get thermal pressure via process info
     let thermal = ProcessInfo.processInfo.thermalState
     switch thermal {
     case .nominal: return "nominal"
@@ -292,25 +287,41 @@ func formatGB(_ bytes: UInt64) -> String {
 }
 
 func formatPercent(_ value: Double) -> String {
-    return String(format: "%.0f%%", value)
+    return String(format: "%3.0f%%", value)
+}
+
+// MARK: - Progress Bar & Colors
+
+func progressBar(_ percent: Double, width: Int = 16) -> String {
+    let clamped = max(0, min(100, percent))
+    let filled = Int((clamped / 100.0) * Double(width))
+    let empty = width - filled
+    return String(repeating: "█", count: filled) + String(repeating: "░", count: empty)
+}
+
+func usageColor(_ percent: Double) -> String {
+    if percent >= 90 { return "#C0392B" }      // dark red
+    if percent >= 70 { return "#E67E22" }      // orange
+    if percent >= 50 { return "#F39C12" }      // yellow-orange
+    return "#27AE60"                            // green
 }
 
 func pressureColor(_ pressure: String) -> String {
     switch pressure {
-    case "normal", "nominal": return "black"
-    case "warn", "fair", "serious", "critical": return "#8B0000"
-    default: return "black"
+    case "normal", "nominal": return "#27AE60"
+    case "warn", "fair": return "#F39C12"
+    case "serious": return "#E67E22"
+    case "critical": return "#C0392B"
+    default: return "#27AE60"
     }
 }
 
-func usageColor(_ usage: Double, warnAt: Double = 70, critAt: Double = 90) -> String {
-    if usage >= critAt { return "#8B0000" }
-    return "black"
-}
-
 func swapColor(_ used: UInt64) -> String {
-    if used > 1_073_741_824 { return "#8B0000" }  // > 1GB
-    return "black"
+    let gb = Double(used) / 1_073_741_824.0
+    if gb >= 10 { return "#C0392B" }
+    if gb >= 5 { return "#E67E22" }
+    if gb >= 1 { return "#F39C12" }
+    return "#27AE60"
 }
 
 // MARK: - Main
@@ -338,61 +349,61 @@ print("\(ramUsed)/\(swapUsed)")
 print("---")
 
 // System info header
-print("\(sysInfo.chip) | color=black size=12")
-print("\(sysInfo.cores) cores, \(sysInfo.memory) RAM | color=black size=11")
-print("Uptime: \(uptime) | color=black size=11")
+print("\(sysInfo.chip) | size=12 color=#555555")
+print("\(sysInfo.cores) cores • \(sysInfo.memory) RAM • Up \(uptime) | size=11 color=#888888")
 print("---")
 
-// CPU
+// CPU with progress bar
 if let c = cpu {
-    let cpuTotal = c.total
-    print("CPU: \(formatPercent(cpuTotal)) | color=\(usageColor(cpuTotal))")
-    print("--User: \(formatPercent(c.user))")
-    print("--System: \(formatPercent(c.system))")
-    print("--Idle: \(formatPercent(c.idle))")
-}
-if let l = load {
-    print("--Load: \(String(format: "%.2f", l.0)) \(String(format: "%.2f", l.1)) \(String(format: "%.2f", l.2)) | color=black size=11")
+    let cpuPct = c.total
+    let cpuBar = progressBar(cpuPct)
+    let cpuCol = usageColor(cpuPct)
+    print("CPU  \(cpuBar) \(formatPercent(cpuPct)) | font=Menlo size=12 color=\(cpuCol)")
+    print("--User:   \(formatPercent(c.user)) | font=Menlo size=11")
+    print("--System: \(formatPercent(c.system)) | font=Menlo size=11")
+    print("--Idle:   \(formatPercent(c.idle)) | font=Menlo size=11")
+    if let l = load {
+        print("--Load: \(String(format: "%.1f", l.0)) \(String(format: "%.1f", l.1)) \(String(format: "%.1f", l.2)) | font=Menlo size=11 color=#888888")
+    }
 }
 
-// GPU
+// GPU with progress bar
 if let g = gpu {
-    print("GPU: \(formatPercent(g)) | color=\(usageColor(g))")
+    let gpuBar = progressBar(g)
+    let gpuCol = usageColor(g)
+    print("GPU  \(gpuBar) \(formatPercent(g)) | font=Menlo size=12 color=\(gpuCol)")
 } else {
-    print("GPU: - | color=black")
+    print("GPU  \(progressBar(0)) \(formatPercent(0)) | font=Menlo size=12 color=#888888")
 }
 
-// Thermal
-let thermalColor = pressureColor(thermal)
-print("Thermal: \(thermal.capitalized) | color=\(thermalColor)")
+// RAM with progress bar
+let ramPct = mem.usedPercent
+let ramBar = progressBar(ramPct)
+let ramCol = usageColor(ramPct)
+print("RAM  \(ramBar) \(formatPercent(ramPct)) | font=Menlo size=12 color=\(ramCol)")
+print("--Used: \(formatGB(mem.used)) / \(formatGB(mem.total)) | font=Menlo size=11")
+print("--App Memory: \(formatGB(mem.appMemory)) | font=Menlo size=11")
+print("--Wired: \(formatGB(mem.wired)) | font=Menlo size=11")
+print("--Compressed: \(formatGB(mem.compressed)) | font=Menlo size=11")
+print("--Cached: \(formatGB(mem.cachedFiles)) | font=Menlo size=11")
 
-print("---")
-
-// Memory pressure
-let pColor = pressureColor(pressure)
-print("Memory Pressure: \(pressure.capitalized) | color=\(pColor)")
-
-// RAM details
-print("---")
-print("RAM (\(formatGB(mem.used)) / \(formatGB(mem.total))) | color=black")
-print("--App Memory: \(formatGB(mem.appMemory))")
-print("--Wired: \(formatGB(mem.wired))")
-print("--Compressed: \(formatGB(mem.compressed))")
-print("--Cached Files: \(formatGB(mem.cachedFiles))")
-print("---")
-print("--Active: \(formatGB(mem.active)) | color=black size=11")
-print("--Inactive: \(formatGB(mem.inactive)) | color=black size=11")
-print("--Purgeable: \(formatGB(mem.purgeable)) | color=black size=11")
-print("--Speculative: \(formatGB(mem.speculative)) | color=black size=11")
-print("--Free: \(formatGB(mem.free)) | color=black size=11")
-
-// Swap details
-print("---")
+// Swap
 if let s = swap {
-    print("Swap: \(formatGB(s.used)) / \(formatGB(s.total)) | color=\(swapColor(s.used))")
+    let swapPct = s.total > 0 ? (Double(s.used) / Double(s.total) * 100) : 0
+    let swapBar = progressBar(swapPct)
+    let swCol = swapColor(s.used)
+    print("Swap \(swapBar) \(formatGB(s.used))/\(formatGB(s.total)) | font=Menlo size=12 color=\(swCol)")
 } else {
-    print("Swap: None | color=black")
+    print("Swap \(progressBar(0)) None | font=Menlo size=12 color=#27AE60")
 }
+
+print("---")
+
+// Status indicators
+let pCol = pressureColor(pressure)
+let tCol = pressureColor(thermal)
+print("Memory Pressure: \(pressure.capitalized) | color=\(pCol)")
+print("Thermal: \(thermal.capitalized) | color=\(tCol)")
 
 // Actions
 print("---")
