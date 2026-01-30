@@ -1,0 +1,20 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(swift:*)",
+      "Bash(swiftc:*)",
+      "Bash(git status*)",
+      "Bash(git diff*)",
+      "Bash(git log*)",
+      "Bash(git branch*)",
+      "Bash(gh repo view*)",
+      "Bash(gh pr list*)",
+      "Bash(gh pr view*)",
+      "Bash(ls *)",
+      "Bash(brew list*)",
+      "Bash(brew info*)",
+      "Bash(uv run*)",
+      "Bash(python*:claude-usage/*)"
+    ]
+  }
+}
