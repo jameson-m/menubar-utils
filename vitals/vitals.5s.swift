@@ -297,18 +297,20 @@ func formatPercent(_ value: Double) -> String {
 
 func pressureColor(_ pressure: String) -> String {
     switch pressure {
-    case "normal", "nominal": return "green"
-    case "warn", "fair": return "yellow"
-    case "serious": return "orange"
-    case "critical": return "red"
-    default: return "white"
+    case "normal", "nominal": return "black"
+    case "warn", "fair", "serious", "critical": return "#8B0000"
+    default: return "black"
     }
 }
 
-func cpuColor(_ usage: Double) -> String {
-    if usage < 50 { return "green" }
-    if usage < 80 { return "yellow" }
-    return "red"
+func usageColor(_ usage: Double, warnAt: Double = 70, critAt: Double = 90) -> String {
+    if usage >= critAt { return "#8B0000" }
+    return "black"
+}
+
+func swapColor(_ used: UInt64) -> String {
+    if used > 1_073_741_824 { return "#8B0000" }  // > 1GB
+    return "black"
 }
 
 // MARK: - Main
@@ -336,28 +338,28 @@ print("\(ramUsed)/\(swapUsed)")
 print("---")
 
 // System info header
-print("\(sysInfo.chip) | color=gray size=12")
-print("\(sysInfo.cores) cores, \(sysInfo.memory) RAM | color=gray size=11")
-print("Uptime: \(uptime) | color=gray size=11")
+print("\(sysInfo.chip) | color=black size=12")
+print("\(sysInfo.cores) cores, \(sysInfo.memory) RAM | color=black size=11")
+print("Uptime: \(uptime) | color=black size=11")
 print("---")
 
 // CPU
 if let c = cpu {
     let cpuTotal = c.total
-    print("CPU: \(formatPercent(cpuTotal)) | color=\(cpuColor(cpuTotal))")
+    print("CPU: \(formatPercent(cpuTotal)) | color=\(usageColor(cpuTotal))")
     print("--User: \(formatPercent(c.user))")
     print("--System: \(formatPercent(c.system))")
     print("--Idle: \(formatPercent(c.idle))")
 }
 if let l = load {
-    print("--Load: \(String(format: "%.2f", l.0)) \(String(format: "%.2f", l.1)) \(String(format: "%.2f", l.2)) | color=gray size=11")
+    print("--Load: \(String(format: "%.2f", l.0)) \(String(format: "%.2f", l.1)) \(String(format: "%.2f", l.2)) | color=black size=11")
 }
 
 // GPU
 if let g = gpu {
-    print("GPU: \(formatPercent(g)) | color=\(cpuColor(g))")
+    print("GPU: \(formatPercent(g)) | color=\(usageColor(g))")
 } else {
-    print("GPU: - | color=gray")
+    print("GPU: - | color=black")
 }
 
 // Thermal
@@ -372,25 +374,24 @@ print("Memory Pressure: \(pressure.capitalized) | color=\(pColor)")
 
 // RAM details
 print("---")
-print("RAM (\(formatGB(mem.used)) / \(formatGB(mem.total))) | color=gray")
+print("RAM (\(formatGB(mem.used)) / \(formatGB(mem.total))) | color=black")
 print("--App Memory: \(formatGB(mem.appMemory))")
 print("--Wired: \(formatGB(mem.wired))")
 print("--Compressed: \(formatGB(mem.compressed))")
 print("--Cached Files: \(formatGB(mem.cachedFiles))")
 print("---")
-print("--Active: \(formatGB(mem.active)) | color=gray size=11")
-print("--Inactive: \(formatGB(mem.inactive)) | color=gray size=11")
-print("--Purgeable: \(formatGB(mem.purgeable)) | color=gray size=11")
-print("--Speculative: \(formatGB(mem.speculative)) | color=gray size=11")
-print("--Free: \(formatGB(mem.free)) | color=gray size=11")
+print("--Active: \(formatGB(mem.active)) | color=black size=11")
+print("--Inactive: \(formatGB(mem.inactive)) | color=black size=11")
+print("--Purgeable: \(formatGB(mem.purgeable)) | color=black size=11")
+print("--Speculative: \(formatGB(mem.speculative)) | color=black size=11")
+print("--Free: \(formatGB(mem.free)) | color=black size=11")
 
 // Swap details
 print("---")
 if let s = swap {
-    let swapColor = s.used > 0 ? "yellow" : "green"
-    print("Swap: \(formatGB(s.used)) / \(formatGB(s.total)) | color=\(swapColor)")
+    print("Swap: \(formatGB(s.used)) / \(formatGB(s.total)) | color=\(swapColor(s.used))")
 } else {
-    print("Swap: None | color=green")
+    print("Swap: None | color=black")
 }
 
 // Actions
