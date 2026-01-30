@@ -56,13 +56,21 @@ def fetch_usage() -> dict | None:
     headers = {
         "Cookie": f"sessionKey={SESSION_KEY}",
         "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36",
+        "Accept": "application/json",
     }
     try:
         resp = requests.get(url, headers=headers, timeout=10)
         if resp.status_code in (401, 403):
             return {"auth_error": True}
         resp.raise_for_status()
-        return resp.json()
+        data = resp.json()
+        # Check if we got valid usage data (keys present with actual values)
+        if not data.get("five_hour") and not data.get("seven_day"):
+            return {"unavailable": True}
+        return data
+    except requests.exceptions.JSONDecodeError:
+        # Cloudflare or other HTML response
+        return {"unavailable": True}
     except requests.RequestException:
         return None
 
@@ -95,8 +103,17 @@ def main():
         print(f"Edit .env | bash=open param1={ENV_FILE} terminal=false")
         sys.exit(0)
 
-    five_hour = data.get("five_hour", {})
-    seven_day = data.get("seven_day", {})
+    if data.get("unavailable"):
+        print("C: N/A | color=gray")
+        print("---")
+        print("Usage data unavailable")
+        print("Anthropic API returning nulls")
+        print("---")
+        print("Refresh | refresh=true")
+        sys.exit(0)
+
+    five_hour = data.get("five_hour") or {}
+    seven_day = data.get("seven_day") or {}
 
     session_pct = five_hour.get("utilization", 0)
     weekly_pct = seven_day.get("utilization", 0)
