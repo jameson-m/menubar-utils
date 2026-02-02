@@ -13,8 +13,9 @@
       "Bash(ls *)",
       "Bash(brew list*)",
       "Bash(brew info*)",
-      "Bash(uv run*)",
-      "Bash(python*:claude-usage/*)"
+      "Bash(go build*)",
+      "Bash(go run*)",
+      "Bash(just*)"
     ]
   }
 }

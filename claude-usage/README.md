@@ -1,61 +1,45 @@
-# Claude.ai Usage Monitor
+# claude-usage
 
-Mac menu bar app showing claude.ai plan usage with 1-minute refresh.
+SwiftBar plugin to monitor Claude.ai usage limits.
 
-Displays: `C: 13%/10%` (session % / weekly %)
+**Menu bar:** `C: 13%/10%` (session % / weekly %)
 
-## Setup
+## Status Indicators
 
-### 1. Install SwiftBar
+| Display | Meaning |
+|---------|---------|
+| `C: 13%/10%` | Normal - session/weekly usage |
+| Orange | Usage >80% |
+| Red | Usage >95% |
+| `C: AUTH` | Session expired - need new cookie |
+| `C: --/--` | Network error |
+| `C: CFG` | Missing or invalid config |
 
-```bash
-brew install --cask swiftbar
+## Configuration
+
+Config file: `~/.config/menubar-utils/claude-usage.env`
+
+```
+CLAUDE_ORG_ID=your-org-id-here
+CLAUDE_SESSION_KEY=sk-ant-sid01-...
 ```
 
-### 2. Install dependencies
+See the [main README](../README.md#getting-credentials) for how to get these values.
+
+## Development
 
 ```bash
-cd /path/to/claude-usage
-uv sync
+# Build
+go build -o claude-usage.1m main.go
+
+# Test
+./claude-usage.1m
 ```
-
-### 3. Get credentials from claude.ai
-
-1. Go to [claude.ai](https://claude.ai) and log in
-2. Open DevTools (Cmd+Option+I)
-3. Go to **Application** > **Cookies** > `https://claude.ai`
-4. Copy the `sessionKey` value (starts with `sk-ant-sid01-...`)
-5. Go to **Settings** > **Usage** and check Network tab for any request
-6. Find your org ID in the URL: `/api/organizations/{org_id}/usage`
-
-### 4. Configure credentials
-
-```bash
-cp .env.example .env
-# Edit .env with your credentials
-```
-
-### 5. Install plugin
-
-Symlink the wrapper script to your SwiftBar plugins folder:
-
-```bash
-ln -s /path/to/claude-usage/claude-usage.1m.sh ~/Library/Application\ Support/SwiftBar/Plugins/
-```
-
-## Display
-
-- `C: 13%/10%` - session usage / weekly usage
-- Orange when >80%
-- Red when >95%
-- `C: AUTH` - session expired, need new cookie
-- `C: --/--` - network error
-- `C: CFG` - missing env vars
 
 ## Auth Expiration
 
 The session cookie expires periodically. When you see `C: AUTH`:
 
 1. Log into claude.ai in browser
-2. Copy new `sessionKey` from DevTools
-3. Click "Edit .env" in dropdown (or edit `.env` directly)
+2. Copy new `sessionKey` from DevTools → Application → Cookies
+3. Click "Edit config" in dropdown or run `just config`

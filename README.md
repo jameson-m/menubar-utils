@@ -25,36 +25,65 @@ Monitor your [Claude.ai](https://claude.ai) usage limits.
 **Menu bar:** Session and weekly usage percentages
 
 **Dropdown:**
-- Detailed token counts
-- Reset times
+- Usage percentages with reset times
 - Quick link to edit credentials
-
-## Installation
-
-1. Install [SwiftBar](https://github.com/swiftbar/SwiftBar)
-   ```bash
-   brew install swiftbar
-   ```
-
-2. Clone this repo
-   ```bash
-   git clone https://github.com/jameson-m/menubar-utils.git
-   ```
-
-3. Symlink desired plugins to your SwiftBar plugins folder
-   ```bash
-   ln -s /path/to/menubar-utils/vitals/vitals.5s.swift ~/.swiftbar/plugins/
-   ln -s /path/to/menubar-utils/claude-usage/claude-usage.1m.sh ~/.swiftbar/plugins/
-   ```
-
-4. For claude-usage, set up credentials (see [claude-usage/README.md](claude-usage/README.md))
 
 ## Requirements
 
 - macOS (tested on Apple Silicon)
-- SwiftBar
-- For vitals: Swift (included with Xcode/Command Line Tools)
-- For claude-usage: Python 3.11+, [uv](https://github.com/astral-sh/uv)
+- [SwiftBar](https://github.com/swiftbar/SwiftBar)
+- [just](https://github.com/casey/just) (command runner)
+- For vitals: Swift (included with Xcode CLI tools)
+- For claude-usage: [Go](https://go.dev/)
+
+## Installation
+
+1. Install dependencies
+
+   ```bash
+   brew install swiftbar just go
+   ```
+
+2. Clone and install
+
+   ```bash
+   git clone https://github.com/jameson-m/menubar-utils.git
+   cd menubar-utils
+   just install
+   ```
+
+3. Configure claude-usage credentials (see [Getting Credentials](#getting-credentials))
+
+   ```bash
+   just config  # opens ~/.config/menubar-utils/
+   ```
+
+4. Launch SwiftBar and select `~/.swiftbar/plugins/` as the plugins folder
+
+## Getting Credentials
+
+For the claude-usage plugin, you need your Claude.ai session credentials:
+
+1. Go to [claude.ai](https://claude.ai) and log in
+2. Open DevTools (Cmd+Option+I)
+3. Go to **Application** → **Cookies** → `https://claude.ai`
+4. Copy the `sessionKey` value (starts with `sk-ant-sid01-...`)
+5. Go to **Settings** → **Usage** and open the Network tab
+6. Find your org ID in any API request URL: `/api/organizations/{org_id}/usage`
+
+Edit `~/.config/menubar-utils/claude-usage.env` with these values.
+
+## Commands
+
+```bash
+just          # Show available commands
+just build    # Build plugins
+just install  # Build and install to SwiftBar
+just uninstall # Remove from SwiftBar
+just config   # Open config directory
+just test     # Test plugin output
+just clean    # Remove build artifacts
+```
 
 ## License
 
