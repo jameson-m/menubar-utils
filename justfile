@@ -11,14 +11,14 @@ config_dir := "~/.config/menubar-utils"
 
 # Build all plugins
 build:
-    cd claude-usage && go build -o claude-usage.1m main.go
+    cd claude-usage && go build -o claude-usage.1m.bin main.go
 
 # Install plugins to SwiftBar
 install: build
     @echo "Creating SwiftBar plugins directory..."
     mkdir -p {{swiftbar_plugins}}
     @echo "Linking plugins..."
-    ln -sf "{{justfile_directory()}}/claude-usage/claude-usage.1m" {{swiftbar_plugins}}/
+    ln -sf "{{justfile_directory()}}/claude-usage/claude-usage.1m.bin" {{swiftbar_plugins}}/
     ln -sf "{{justfile_directory()}}/vitals/vitals.5s.swift" {{swiftbar_plugins}}/
     @echo "Setting up config directory..."
     mkdir -p {{config_dir}}
@@ -32,7 +32,7 @@ install: build
 
 # Remove plugins from SwiftBar
 uninstall:
-    rm -f {{swiftbar_plugins}}/claude-usage.1m
+    rm -f {{swiftbar_plugins}}/claude-usage.1m.bin
     rm -f {{swiftbar_plugins}}/vitals.5s.swift
     @echo "Plugins removed. Config preserved at {{config_dir}}/"
 
@@ -42,7 +42,7 @@ config:
 
 # Clean build artifacts
 clean:
-    rm -f claude-usage/claude-usage.1m
+    rm -f claude-usage/claude-usage.1m.bin
 
 # Run tests (vitals output check)
 test:
@@ -50,4 +50,4 @@ test:
     ./vitals/vitals.5s.swift | head -5
     @echo ""
     @echo "Testing claude-usage..."
-    ./claude-usage/claude-usage.1m | head -5
+    ./claude-usage/claude-usage.1m.bin | head -5

@@ -30,10 +30,10 @@ See the [main README](../README.md#getting-credentials) for how to get these val
 
 ```bash
 # Build
-go build -o claude-usage.1m main.go
+go build -o claude-usage.1m.bin main.go
 
 # Test
-./claude-usage.1m
+./claude-usage.1m.bin
 ```
 
 ## Auth Expiration
